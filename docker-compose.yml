@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: projectdb
+      POSTGRES_USER: projectuser
+      POSTGRES_PASSWORD: projectpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - project-network
+
+  # Backend Service
+  backend:
+    build:
+      context: ./project
+    container_name: project
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/projectdb
+      SPRING_DATASOURCE_USERNAME: projectuser
+      SPRING_DATASOURCE_PASSWORD: projectpassword
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - project-network
+
+  # Client Service
+  client:
+    build:
+      context: ./client
+    container_name: client
+    environment:
+      BACKEND_URL: http://project:8080
+    depends_on:
+      - project
+    networks:
+      - project-network
+
+networks:
+  project-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
