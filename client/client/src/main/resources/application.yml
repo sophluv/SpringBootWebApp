@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+backend:
+  base-url: http://backend:8080  # URL for internal network communication with backend
+
+spring:
+  main:
+    web-application-type: reactive  # Ensures WebClient runs as a reactive application
+
+logging:
+  level:
+    root: INFO
+    com.example: DEBUG  # Adjust to your package structure
