@@ -4,10 +4,10 @@ services:
   # PostgreSQL Database Service
   db:
     image: postgres:15
-    container_name: postgres-db
+    container_name: postgresdb 
     environment:
       POSTGRES_DB: projectdb
-      POSTGRES_USER: projectuser
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: projectpassword
     ports:
       - "5432:5432"

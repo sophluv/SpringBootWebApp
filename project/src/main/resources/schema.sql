@@ -1,5 +1,5 @@
 -- User table to store user details
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     age INT NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE users (
 );
 
 -- Media table to store media details
-CREATE TABLE media (
+CREATE TABLE IF NOT EXISTS media (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     release_date DATE NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE media (
 );
 
 -- Junction table for the many-to-many relationship between users and media
-CREATE TABLE user_media (
+CREATE TABLE IF NOT EXISTS user_media (
     user_id INT NOT NULL,
     media_id INT NOT NULL,
     PRIMARY KEY (user_id, media_id),
