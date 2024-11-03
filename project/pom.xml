@@ -12,33 +12,20 @@
 	<artifactId>project</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>project</name>
-	<description>IS projechttps://start.spring.io/t</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<description>IS project</description>
 	<properties>
 		<java.version>21</java.version>
+		<r2dbc.postgresql.version>0.9.0.RELEASE</r2dbc.postgresql.version> <!-- Specify the version here -->
 	</properties>
 	<dependencies>
-	    <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-r2dbc</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-r2dbc</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -59,6 +46,12 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-postgresql</artifactId>
+			<version>0.8.13.RELEASE</version>
+            <scope>runtime</scope>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -77,5 +70,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
