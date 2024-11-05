@@ -74,6 +74,20 @@ public class WebClientApplication {
                 });
     }
 
+    private static void writeTotalCountOfSubscribedMediaItems(WebClient webClient) {
+        webClient.get().uri("/media/subscribed").retrieve().bodyToFlux(Media.class)
+                .count()
+                .subscribe(count -> {
+                    try (FileWriter fileWriter = new FileWriter("subscribedMediaItemsCount.txt", true)) {
+                        fileWriter.write("Total count of subscribed media items: " + count + "\n");
+                        System.out.println("Subscribed media count added to file");
+                    } catch (IOException e) {
+                        System.out.println("An IOException was thrown");
+                        e.printStackTrace();
+                    }
+                });
+    }
+    
     private static void writeMediaFromTheEighties(WebClient webClient) {
         webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
                 .filter(media -> media.getReleaseDate().isAfter(LocalDate.of(1980, 1, 1))
@@ -89,6 +103,25 @@ public class WebClientApplication {
                     }
                 });
     }
+
+    private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
+        webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
+                .map(Media::getAverageRating)
+                .collectList()
+                .subscribe(ratings -> {
+                    double average = ratings.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+                    double variance = ratings.stream().mapToDouble(r -> Math.pow(r - average, 2)).average().orElse(0.0);
+                    double stdDeviation = Math.sqrt(variance);
+    
+                    try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", true)) {
+                        fileWriter.write("Average rating: " + average + ", Standard deviation: " + stdDeviation + "\n");
+                        System.out.println("Media ratings statistics written");
+                    } catch (IOException e) {
+                        System.out.println("An IOException was thrown");
+                        e.printStackTrace();
+                    }
+                });
+    }    
 
     private static void writeOldestMediaItemName(WebClient webClient) {
         webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
@@ -137,6 +170,26 @@ public class WebClientApplication {
                 });
     }
 
+    private static void writeUserCountPerMediaSortedByUserAge(WebClient webClient) {
+        webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
+                .flatMap(media -> webClient.get()
+                        .uri("/users?mediaId=" + media.getId()) // Adjust as needed
+                        .retrieve()
+                        .bodyToFlux(User.class)
+                        .sort((u1, u2) -> Integer.compare(u2.getAge(), u1.getAge()))
+                        .collectList()
+                        .map(users -> "Media: " + media.getTitle() + ", Users count: " + users.size() + ", Users: " + users))
+                .subscribe(data -> {
+                    try (FileWriter fileWriter = new FileWriter("userCountPerMediaSortedByAge.txt", true)) {
+                        fileWriter.write(data + "\n");
+                        System.out.println("User count per media sorted by age written");
+                    } catch (IOException e) {
+                        System.out.println("An IOException was thrown");
+                        e.printStackTrace();
+                    }
+                });
+    }
+    
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/users").retrieve().bodyToFlux(User.class)
                 .flatMap(user -> webClient.get()
