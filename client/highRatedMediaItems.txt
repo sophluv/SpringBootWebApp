@@ -1,0 +1,1 @@
+Total count of media items with rating > 8: 1

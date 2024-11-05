@@ -7,5 +7,4 @@ import app.project.model.UserMedia;
 
 @Repository
 public interface UserMediaRepository extends ReactiveCrudRepository<UserMedia, Long> {
-    // You can define custom query methods here if needed
 }

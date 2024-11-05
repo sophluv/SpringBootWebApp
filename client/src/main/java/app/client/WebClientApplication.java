@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 public class WebClientApplication {
 
     public static void main(String[] args) {
-        WebClient webClient = WebClient.create("http://localhost:8080"); // Replace with your backend URL
+        WebClient webClient = WebClient.create("http://localhost:8080"); 
         writeAllMediaTitlesAndReleaseDates(webClient);
         writeTotalCountOfMediaItems(webClient);
         writeMediaItemsWithHighRatings(webClient);
