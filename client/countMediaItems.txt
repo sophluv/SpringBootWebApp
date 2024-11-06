@@ -1,3 +1,5 @@
 Total count of media items: 1
 Total count of media items: 3
 Total count of media items: 3
+Total count of media items: 3
+Total count of media items: 3
