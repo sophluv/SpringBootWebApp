@@ -1,7 +1,5 @@
 package app.project.controller;
 
-import java.util.logging.Logger;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,31 +14,31 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import app.project.model.User;
-import app.project.repository.UserRepository;
+import app.project.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/users")
+@Slf4j
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
-
-    private static final Logger logger = Logger.getLogger(UserController.class.getName());
+    private UserService userService;
 
     // Retrieve all users
     @GetMapping
     public Flux<User> getAllUsers() {
-        logger.info("Retrieving all users");
-        return userRepository.findAll();
+        log.info("Retrieving all users");
+        return userService.getAllUsers();
     }
 
     // Retrieve a specific user by ID
     @GetMapping("/{id}")
     public Mono<ResponseEntity<User>> getUserById(@PathVariable Long id) {
-        logger.info(String.format("Retrieving user with ID: %d", id));
-        return userRepository.findById(id)
+        log.info("Retrieving user with ID: {}", id);
+        return userService.getUserById(id)
                 .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -49,21 +47,15 @@ public class UserController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<User> createUser(@RequestBody User user) {
-        logger.info("Creating new user");
-        return userRepository.save(user);
+        log.info("Creating new user");
+        return userService.createUser(user);
     }
 
     // Update an existing user by ID
     @PutMapping("/{id}")
     public Mono<ResponseEntity<User>> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
-        logger.info(String.format("Updating user with ID: %d", id));
-        return userRepository.findById(id)
-                .flatMap(existingUser -> {
-                    existingUser.setName(updatedUser.getName());
-                    existingUser.setAge(updatedUser.getAge());
-                    existingUser.setGender(updatedUser.getGender());
-                    return userRepository.save(existingUser);
-                })
+        log.info("Updating user with ID: {}", id);
+        return userService.updateUser(id, updatedUser)
                 .map(updated -> new ResponseEntity<>(updated, HttpStatus.OK))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -71,12 +63,9 @@ public class UserController {
     // Delete a user by ID
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Void>> deleteUser(@PathVariable Long id) {
-        logger.info(String.format("Deleting user with ID: %d", id));
-        return userRepository.findById(id)
-                .flatMap(existingUser -> 
-                        userRepository.delete(existingUser)
-                                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)))
-                )
+        log.info("Deleting user with ID: {}", id);
+        return userService.deleteUser(id)
+                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }

@@ -3,13 +3,16 @@ package app.client;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import app.client.model.Media;
 import app.client.model.User;
+import app.client.util.Stats;
 import reactor.core.publisher.Mono;
 
 @SpringBootApplication
@@ -103,25 +106,26 @@ public class WebClientApplication {
                     }
                 });
     }
+private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
+    webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
+            .map(Media::getAverageRating)
+            .reduce(new ArrayList<Double>(), (list, rating) -> {
+                list.add(rating);
+                return list;
+            })
+            .subscribe(ratings -> {
+                double average = Stats.calcularMedia(ratings);
+                double stdDeviation = Stats.calcularDesvioPadrao(ratings);
 
-    private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
-        webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
-                .map(Media::getAverageRating)
-                .collectList()
-                .subscribe(ratings -> {
-                    double average = ratings.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-                    double variance = ratings.stream().mapToDouble(r -> Math.pow(r - average, 2)).average().orElse(0.0);
-                    double stdDeviation = Math.sqrt(variance);
-    
-                    try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", true)) {
-                        fileWriter.write("Average rating: " + average + ", Standard deviation: " + stdDeviation + "\n");
-                        System.out.println("Media ratings statistics written");
-                    } catch (IOException e) {
-                        System.out.println("An IOException was thrown");
-                        e.printStackTrace();
-                    }
-                });
-    }    
+                try (FileWriter fileWriter = new FileWriter("util.stats", true)) {
+                    fileWriter.write("Average rating: " + average + ", Standard deviation: " + stdDeviation + "\n");
+                    System.out.println("Media ratings statistics written");
+                } catch (IOException e) {
+                    System.out.println("An IOException was thrown");
+                    e.printStackTrace();
+                }
+            });
+}
 
     private static void writeOldestMediaItemName(WebClient webClient) {
         webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
@@ -144,23 +148,29 @@ public class WebClientApplication {
                 .uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
-                .collectList();
-
+                .reduce(new ArrayList<Media>(), (list, media) -> {
+                    list.add(media);
+                    return list;
+                });
+    
         Mono<List<User>> userList = webClient.get()
                 .uri("/users")
                 .retrieve()
                 .bodyToFlux(User.class)
-                .collectList();
-
+                .reduce(new ArrayList<User>(), (list, user) -> {
+                    list.add(user);
+                    return list;
+                });
+    
         Mono.zip(mediaList, userList)
                 .flatMap(tuple -> {
                     List<Media> media = tuple.getT1();
                     List<User> users = tuple.getT2();
-                    double averageUsersPerMedia = users.size() / (double) (media.isEmpty() ? 1 : media.size());
+                    double averageUsersPerMedia = media.isEmpty() ? 0 : users.size() / (double) media.size();
                     return Mono.just(averageUsersPerMedia);
                 })
                 .subscribe(avg -> {
-                    try (FileWriter fileWriter = new FileWriter("avgUsersPerMedia.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("util.stats", true)) {
                         fileWriter.write("Average number of users per media item: " + avg + "\n");
                         System.out.println("Average number of users per media item written");
                     } catch (IOException e) {
@@ -169,6 +179,7 @@ public class WebClientApplication {
                     }
                 });
     }
+    
 
     private static void writeUserCountPerMediaSortedByUserAge(WebClient webClient) {
         webClient.get().uri("/media").retrieve().bodyToFlux(Media.class)
@@ -193,14 +204,21 @@ public class WebClientApplication {
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/users").retrieve().bodyToFlux(User.class)
                 .flatMap(user -> webClient.get()
-                        .uri("/media?userId=" + user.getId()) // Adjust URI to suit your query
+                        .uri("/media?userId=" + user.getId()) // Ajuste de URI conforme necessário
                         .retrieve()
-                        .bodyToFlux(Media.class)
-                        .map(Media::getTitle)
-                        .collectList()
-                        .map(mediaTitles -> "User: " + user.getName() + ", Subscribed Media: " + mediaTitles))
+                        .bodyToFlux(Media.class)  // Flux de Media (múltiplos objetos de Media)
+                        .reduce(new StringBuilder(), (acc, media) -> {
+                            // Acumula os títulos das mídias no StringBuilder
+                            if (acc.length() > 0) {
+                                acc.append(", ");  // Adiciona vírgula separadora
+                            }
+                            acc.append(media.getTitle());  // Adiciona o título da mídia
+                            return acc;  // Retorna o acumulador para o próximo ciclo
+                        })
+                        .map(acc -> "User: " + user.getName() + ", Subscribed Media: " + acc.toString())  // Converte o StringBuilder para String
+                )
                 .subscribe(userData -> {
-                    try (FileWriter fileWriter = new FileWriter("userDataWithSubscribedMedia.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("util.stats", true)) {
                         fileWriter.write(userData + "\n");
                         System.out.println("User data with subscribed media written");
                     } catch (IOException e) {
@@ -209,4 +227,6 @@ public class WebClientApplication {
                     }
                 });
     }
+    
+
 }

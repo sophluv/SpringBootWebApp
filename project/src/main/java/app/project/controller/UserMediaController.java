@@ -1,7 +1,5 @@
 package app.project.controller;
 
-import java.util.logging.Logger;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,31 +13,31 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import app.project.model.UserMedia;
-import app.project.repository.UserMediaRepository;
+import app.project.service.UserMediaService;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/user-media")
+@Slf4j
 public class UserMediaController {
 
     @Autowired
-    private UserMediaRepository userMediaRepository;
-
-    private static final Logger logger = Logger.getLogger(UserMediaController.class.getName());
+    private UserMediaService userMediaService;
 
     // Retrieve all user-media relationships
     @GetMapping
     public Flux<UserMedia> getAllUserMedia() {
-        logger.info("Retrieving all user-media relationships");
-        return userMediaRepository.findAll();
+        log.info("Retrieving all user-media relationships");
+        return userMediaService.getAllUserMedia();
     }
 
     // Retrieve a specific user-media relationship by ID
     @GetMapping("/{id}")
     public Mono<ResponseEntity<UserMedia>> getUserMediaById(@PathVariable Long id) {
-        logger.info("Retrieving user-media relationship with ID: " + id);
-        return userMediaRepository.findById(id)
+        log.info("Retrieving user-media relationship with ID: {}", id);
+        return userMediaService.getUserMediaById(id)
                 .map(userMedia -> new ResponseEntity<>(userMedia, HttpStatus.OK))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -48,19 +46,16 @@ public class UserMediaController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<UserMedia> createUserMedia(@RequestBody UserMedia userMedia) {
-        logger.info("Creating new user-media relationship");
-        return userMediaRepository.save(userMedia);
+        log.info("Creating new user-media relationship");
+        return userMediaService.createUserMedia(userMedia);
     }
 
     // Delete a user-media relationship by ID
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Void>> deleteUserMedia(@PathVariable Long id) {
-        logger.info("Deleting user-media relationship with ID: " + id);
-        return userMediaRepository.findById(id)
-                .flatMap(existingUserMedia -> 
-                        userMediaRepository.delete(existingUserMedia)
-                                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)))
-                )
+        log.info("Deleting user-media relationship with ID: {}", id);
+        return userMediaService.deleteUserMedia(id)
+                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }
