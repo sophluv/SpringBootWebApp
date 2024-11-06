@@ -4,7 +4,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -40,21 +39,30 @@ public class WebClientApplication {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
+                .reduce("", (acc, media) -> acc + "Title: " + media.getTitle() + ", Release Date: " + media.getReleaseDate() + "\n")
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
-                .subscribe(media -> {
+                .subscribe(content -> {
                     try (FileWriter fileWriter = new FileWriter("mediaTitlesAndReleaseDates.txt", false)) {
-                        fileWriter.write("Title: " + media.getTitle() + ", Release Date: " + media.getReleaseDate() + "\n");
+                        fileWriter.write(content);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
     }
+    
 
     private static void writeTotalCountOfMediaItems(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .count()
+                .switchIfEmpty(Mono.fromRunnable(() -> {
+                    try (FileWriter fileWriter = new FileWriter("countMediaItems.txt", false)) {
+                        fileWriter.write("No media items found.\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }))
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("countMediaItems.txt", false)) {
@@ -64,13 +72,13 @@ public class WebClientApplication {
                     }
                 });
     }
-
+    
     private static void writeMediaItemsWithHighRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .filter(media -> media.getAverageRating() > 8)
-                .count()
+                .reduce(0L, (count, media) -> count + 1)
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", false)) {
@@ -80,7 +88,7 @@ public class WebClientApplication {
                     }
                 });
     }
-
+    
     private static void writeMediaFromTheEighties(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -88,43 +96,49 @@ public class WebClientApplication {
                 .filter(media -> media.getReleaseDate().isAfter(LocalDate.of(1980, 1, 1)) &&
                                  media.getReleaseDate().isBefore(LocalDate.of(1989, 12, 31)))
                 .sort((m1, m2) -> Double.compare(m2.getAverageRating(), m1.getAverageRating()))
+                .reduce("", (acc, media) -> acc + "Title: " + media.getTitle() + ", Rating: " + media.getAverageRating() + "\n")
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
-                .subscribe(media -> {
+                .subscribe(content -> {
                     try (FileWriter fileWriter = new FileWriter("mediaFromTheEighties.txt", false)) {
-                        fileWriter.write("Media from the 80's: " + media + "\n");
+                        fileWriter.write(content);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
     }
+    
 
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .map(Media::getAverageRating)
-                .collectList()
+                .reduce(new double[]{0.0, 0.0}, (acc, rating) -> {
+                    acc[0] += rating;   // Sum of ratings
+                    acc[1] += 1;        // Count of ratings
+                    return acc;
+                })
+                .map(acc -> {
+                    double average = acc[0] / acc[1];
+                    return new double[]{average, acc[0]}; // Temporarily return average for next processing
+                })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
-                .subscribe(ratings -> {
-                    double average = ratings.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-                    double variance = ratings.stream().mapToDouble(r -> Math.pow(r - average, 2)).average().orElse(0.0);
-                    double stdDeviation = Math.sqrt(variance);
-
+                .subscribe(stats -> {
                     try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", false)) {
-                        fileWriter.write("Average rating: " + average + ", Standard deviation: " + stdDeviation + "\n");
+                        fileWriter.write("Average rating: " + stats[0] + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
     }
-
+    
     private static void writeOldestMediaItemName(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
-                .sort((m1, m2) -> m1.getReleaseDate().compareTo(m2.getReleaseDate()))
-                .next()
+                .reduce((oldest, media) -> media.getReleaseDate().isBefore(oldest.getReleaseDate()) ? media : oldest)
                 .map(Media::getTitle)
+                .switchIfEmpty(Mono.just("No media items available"))
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(title -> {
                     try (FileWriter fileWriter = new FileWriter("oldestMediaItem.txt", false)) {
@@ -134,6 +148,7 @@ public class WebClientApplication {
                     }
                 });
     }
+    
 
     private static void writeAverageNumberOfUsersPerMedia(WebClient webClient) {
         Mono<List<Media>> mediaList = webClient.get()
@@ -171,9 +186,9 @@ public class WebClientApplication {
                         .uri("/media?userId=" + user.getId())
                         .retrieve()
                         .bodyToFlux(Media.class)
-                        .collectList()
-                        .map(medias -> "User: " + user.getName() + ", Subscribed Media: " +
-                                medias.stream().map(Media::getTitle).collect(Collectors.joining(", ")))
+                        .map(Media::getTitle)
+                        .reduce((title1, title2) -> title1 + ", " + title2)
+                        .map(titles -> "User: " + user.getName() + ", Subscribed Media: " + titles)
                 )
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(userData -> {
@@ -184,4 +199,5 @@ public class WebClientApplication {
                     }
                 });
     }
+
 }
