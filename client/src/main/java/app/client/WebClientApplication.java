@@ -42,7 +42,7 @@ public class WebClientApplication {
                 .bodyToFlux(Media.class)
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(media -> {
-                    try (FileWriter fileWriter = new FileWriter("mediaTitlesAndReleaseDates.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("mediaTitlesAndReleaseDates.txt", false)) {
                         fileWriter.write("Title: " + media.getTitle() + ", Release Date: " + media.getReleaseDate() + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -57,7 +57,7 @@ public class WebClientApplication {
                 .count()
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(count -> {
-                    try (FileWriter fileWriter = new FileWriter("countMediaItems.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("countMediaItems.txt", false)) {
                         fileWriter.write("Total count of media items: " + count + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -73,7 +73,7 @@ public class WebClientApplication {
                 .count()
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(count -> {
-                    try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", false)) {
                         fileWriter.write("Total count of media items with rating > 8: " + count + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -90,7 +90,7 @@ public class WebClientApplication {
                 .sort((m1, m2) -> Double.compare(m2.getAverageRating(), m1.getAverageRating()))
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(media -> {
-                    try (FileWriter fileWriter = new FileWriter("mediaFromTheEighties.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("mediaFromTheEighties.txt", false)) {
                         fileWriter.write("Media from the 80's: " + media + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -110,7 +110,7 @@ public class WebClientApplication {
                     double variance = ratings.stream().mapToDouble(r -> Math.pow(r - average, 2)).average().orElse(0.0);
                     double stdDeviation = Math.sqrt(variance);
 
-                    try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", false)) {
                         fileWriter.write("Average rating: " + average + ", Standard deviation: " + stdDeviation + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -127,7 +127,7 @@ public class WebClientApplication {
                 .map(Media::getTitle)
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(title -> {
-                    try (FileWriter fileWriter = new FileWriter("oldestMediaItem.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("oldestMediaItem.txt", false)) {
                         fileWriter.write("Oldest media item: " + title + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -155,7 +155,7 @@ public class WebClientApplication {
                     List<User> users = tuple.getT2();
                     double averageUsersPerMedia = media.isEmpty() ? 0 : users.size() / (double) media.size();
 
-                    try (FileWriter fileWriter = new FileWriter("averageUsersPerMedia.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("averageUsersPerMedia.txt", false)) {
                         fileWriter.write("Average number of users per media item: " + averageUsersPerMedia + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -177,7 +177,7 @@ public class WebClientApplication {
                 )
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(userData -> {
-                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", true)) {
+                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) {
                         fileWriter.write(userData + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();

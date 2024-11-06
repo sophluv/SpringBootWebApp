@@ -1,5 +1,1 @@
 Media from the 80's: Media{id=1, title='Scarface', releaseDate=1983-12-09, averageRating=8.3, type='Movie'}
-Media from the 80's: Media{id=1, title='Scarface', releaseDate=1983-12-09, averageRating=8.3, type='Movie'}
-Media from the 80's: Media{id=1, title='Scarface', releaseDate=1983-12-09, averageRating=8.3, type='Movie'}
-Media from the 80's: Media{id=1, title='Scarface', releaseDate=1983-12-09, averageRating=8.3, type='Movie'}
-Media from the 80's: Media{id=1, title='Scarface', releaseDate=1983-12-09, averageRating=8.3, type='Movie'}
