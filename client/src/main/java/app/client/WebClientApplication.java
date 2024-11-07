@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import app.client.model.Media;
 import app.client.model.User;
+import app.client.model.UserMedia;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -114,13 +115,13 @@ public class WebClientApplication {
                 .bodyToFlux(Media.class)
                 .map(Media::getAverageRating)
                 .reduce(new double[]{0.0, 0.0}, (acc, rating) -> {
-                    acc[0] += rating;   // Sum of ratings
-                    acc[1] += 1;        // Count of ratings
+                    acc[0] += rating;  
+                    acc[1] += 1;       
                     return acc;
                 })
                 .map(acc -> {
                     double average = acc[0] / acc[1];
-                    return new double[]{average, acc[0]}; // Temporarily return average for next processing
+                    return new double[]{average, acc[0]}; 
                 })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(stats -> {
@@ -177,27 +178,34 @@ public class WebClientApplication {
                     }
                 });
     }
-
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
-        webClient.get().uri("/users")
+        // Fetch all user-media relationships
+        webClient.get().uri("/user-media")
                 .retrieve()
-                .bodyToFlux(User.class)
-                .flatMap(user -> webClient.get()
-                        .uri("/media?userId=" + user.getId())
-                        .retrieve()
-                        .bodyToFlux(Media.class)
-                        .map(Media::getTitle)
-                        .reduce((title1, title2) -> title1 + ", " + title2)
-                        .map(titles -> "User: " + user.getName() + ", Subscribed Media: " + titles)
+                .bodyToFlux(UserMedia.class)
+                .flatMap(userMedia -> 
+                    webClient.get().uri("/users/{id}", userMedia.getUserId())
+                            .retrieve()
+                            .bodyToMono(User.class)
+                            .zipWith(
+                                webClient.get().uri("/media/{id}", userMedia.getMediaId())
+                                        .retrieve()
+                                        .bodyToMono(Media.class),
+                                (user, media) -> {
+                                    return "User: " + user.getName() + ", Subscribed Media: " + media.getTitle();
+                                }
+                            )
                 )
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(userData -> {
-                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) {
+                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) { 
                         fileWriter.write(userData + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
     }
+    
+
 
 }

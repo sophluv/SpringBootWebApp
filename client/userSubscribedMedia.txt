@@ -1,1 +1,3 @@
-User: Sofia, Subscribed Media: Scarface, Fight Club, The Notebook
+User: Diogo, Subscribed Media: Scarface
+User: Sofia, Subscribed Media: Fight Club
+User: Sofia, Subscribed Media: Fight Club

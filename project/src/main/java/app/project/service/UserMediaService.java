@@ -24,14 +24,17 @@ public class UserMediaService {
         return userMediaRepository.findById(id);
     }
 
-    // Create a new user-media relationship
-    public Mono<UserMedia> createUserMedia(UserMedia userMedia) {
+    // Link a user to a media item (create a user-media relationship)
+    public Mono<UserMedia> addUserMediaRelationship(Long userId, Long mediaId) {
+        UserMedia userMedia = new UserMedia();
+        userMedia.setUserId(userId);
+        userMedia.setMediaId(mediaId);
         return userMediaRepository.save(userMedia);
     }
 
     // Delete a user-media relationship by ID
     public Mono<Void> deleteUserMedia(Long id) {
         return userMediaRepository.findById(id)
-                .flatMap(existingUserMedia -> userMediaRepository.delete(existingUserMedia));
+                .flatMap(userMediaRepository::delete);
     }
 }

@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,12 +42,12 @@ public class UserMediaController {
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Create a new user-media relationship
-    @PostMapping
+    // Link a user to a media item (create a user-media relationship)
+    @PostMapping("/link")
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<UserMedia> createUserMedia(@RequestBody UserMedia userMedia) {
-        log.info("Creating new user-media relationship");
-        return userMediaService.createUserMedia(userMedia);
+    public Mono<UserMedia> linkUserToMedia(@RequestParam Long userId, @RequestParam Long mediaId) {
+        log.info("Linking user ID {} to media ID {}", userId, mediaId);
+        return userMediaService.addUserMediaRelationship(userId, mediaId);
     }
 
     // Delete a user-media relationship by ID

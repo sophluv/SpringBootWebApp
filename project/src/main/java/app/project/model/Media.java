@@ -6,23 +6,23 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("media") // Table name in the database
+@Table("media") 
 public class Media {
 
-    @Id // Marks the primary key
+    @Id 
     private Long id;
 
-    @Column("title") // Maps to the 'title' column
+    @Column("title")
     private String title;
 
-    @Column("release_date") // Maps to the 'release_date' column
+    @Column("release_date") 
     private LocalDate releaseDate;
 
-    @Column("average_rating") // Maps to the 'average_rating' column
+    @Column("average_rating") 
     private double averageRating;
 
-    @Column("type") // Maps to the 'type' column
-    private String type; // e.g., "Movie" or "TV Show"
+    @Column("type") 
+    private String type; //"Movie" or "TV Show"
 
     // Getters and setters
     public Long getId() {

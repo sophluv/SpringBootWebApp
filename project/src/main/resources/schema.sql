@@ -15,11 +15,9 @@ CREATE TABLE IF NOT EXISTS media (
     type VARCHAR(20) CHECK (type IN ('Movie', 'TV Show'))
 );
 
--- Junction table for the many-to-many relationship between users and media
+-- Table for the many-to-many relationship between users and media
 CREATE TABLE IF NOT EXISTS user_media (
-    user_id INT NOT NULL,
-    media_id INT NOT NULL,
-    PRIMARY KEY (user_id, media_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    media_id BIGINT REFERENCES media(id)
 );

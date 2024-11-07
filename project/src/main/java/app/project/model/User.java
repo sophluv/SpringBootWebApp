@@ -4,19 +4,19 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("users") // Table name in the database
+@Table("users") 
 public class User {
 
     @Id
     private Long id;    
 
-    @Column("name") // Maps to the 'name' column in the database
+    @Column("name") 
     private String name;
 
-    @Column("age") // Maps to the 'age' column
+    @Column("age") 
     private int age;
 
-    @Column("gender") // Maps to the 'gender' column
+    @Column("gender") 
     private String gender;
 
     // Getters and setters
