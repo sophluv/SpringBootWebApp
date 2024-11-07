@@ -1,10 +1,10 @@
 package app.client.model;
 
 public class User {
-    private Long id;        // Identifier
-    private String name;    // Name
-    private int age;        // Age
-    private String gender;  // Gender
+    private Long id;        
+    private String name;    
+    private int age;       
+    private String gender;  
 
     // Getters and Setters
     public Long getId() {

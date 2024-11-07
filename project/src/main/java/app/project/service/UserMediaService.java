@@ -14,17 +14,14 @@ public class UserMediaService {
     @Autowired
     private UserMediaRepository userMediaRepository;
 
-    // Retrieve all user-media relationships
     public Flux<UserMedia> getAllUserMedia() {
         return userMediaRepository.findAll();
     }
 
-    // Retrieve a specific user-media relationship by ID
     public Mono<UserMedia> getUserMediaById(Long id) {
         return userMediaRepository.findById(id);
     }
 
-    // Link a user to a media item (create a user-media relationship)
     public Mono<UserMedia> addUserMediaRelationship(Long userId, Long mediaId) {
         UserMedia userMedia = new UserMedia();
         userMedia.setUserId(userId);
@@ -32,7 +29,6 @@ public class UserMediaService {
         return userMediaRepository.save(userMedia);
     }
 
-    // Delete a user-media relationship by ID
     public Mono<Void> deleteUserMedia(Long id) {
         return userMediaRepository.findById(id)
                 .flatMap(userMediaRepository::delete);

@@ -14,22 +14,18 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    // Retrieve all users
     public Flux<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // Retrieve a specific user by ID
     public Mono<User> getUserById(Long id) {
         return userRepository.findById(id);
     }
 
-    // Create a new user
     public Mono<User> createUser(User user) {
         return userRepository.save(user);
     }
 
-    // Update an existing user
     public Mono<User> updateUser(Long id, User updatedUser) {
         return userRepository.findById(id)
                 .flatMap(existingUser -> {
@@ -40,7 +36,6 @@ public class UserService {
                 });
     }
 
-    // Delete a user by ID
     public Mono<Void> deleteUser(Long id) {
         return userRepository.findById(id)
                 .flatMap(userRepository::delete);

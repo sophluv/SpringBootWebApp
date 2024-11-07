@@ -22,7 +22,7 @@ public class Media {
     private double averageRating;
 
     @Column("type") 
-    private String type; //"Movie" or "TV Show"
+    private String type; // "Movie" or "TV Show"
 
     // Getters and setters
     public Long getId() {

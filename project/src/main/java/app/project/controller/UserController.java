@@ -27,14 +27,12 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // Retrieve all users
     @GetMapping
     public Flux<User> getAllUsers() {
         log.info("Retrieving all users");
         return userService.getAllUsers();
     }
 
-    // Retrieve a specific user by ID
     @GetMapping("/{id}")
     public Mono<ResponseEntity<User>> getUserById(@PathVariable Long id) {
         log.info("Retrieving user with ID: {}", id);
@@ -43,7 +41,6 @@ public class UserController {
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Create a new user
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<User> createUser(@RequestBody User user) {
@@ -51,7 +48,6 @@ public class UserController {
         return userService.createUser(user);
     }
 
-    // Update an existing user by ID
     @PutMapping("/{id}")
     public Mono<ResponseEntity<User>> updateUser(@PathVariable Long id, @RequestBody User updatedUser) {
         log.info("Updating user with ID: {}", id);
@@ -60,7 +56,6 @@ public class UserController {
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Delete a user by ID
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Void>> deleteUser(@PathVariable Long id) {
         log.info("Deleting user with ID: {}", id);

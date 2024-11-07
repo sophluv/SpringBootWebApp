@@ -3,7 +3,6 @@ package app.client;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -11,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import app.client.model.Media;
 import app.client.model.User;
 import app.client.model.UserMedia;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -150,27 +150,27 @@ public class WebClientApplication {
                 });
     }
     
-
     private static void writeAverageNumberOfUsersPerMedia(WebClient webClient) {
-        Mono<List<Media>> mediaList = webClient.get()
+        Flux<UserMedia> userMediaFlux = webClient.get()
+                .uri("/user-media")
+                .retrieve()
+                .bodyToFlux(UserMedia.class);
+    
+        Flux<Media> mediaFlux = webClient.get()
                 .uri("/media")
                 .retrieve()
-                .bodyToFlux(Media.class)
-                .collectList();
-
-        Mono<List<User>> userList = webClient.get()
-                .uri("/users")
-                .retrieve()
-                .bodyToFlux(User.class)
-                .collectList();
-
-        Mono.zip(mediaList, userList)
+                .bodyToFlux(Media.class);
+    
+        mediaFlux
+                .flatMap(media -> userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count())
+                .reduce((totalUsers, mediaUserCount) -> totalUsers + mediaUserCount)  
+                .zipWith(mediaFlux.count()) 
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .subscribe(tuple -> {
-                    List<Media> media = tuple.getT1();
-                    List<User> users = tuple.getT2();
-                    double averageUsersPerMedia = media.isEmpty() ? 0 : users.size() / (double) media.size();
-
+                    long totalUserCount = tuple.getT1();  
+                    long mediaCount = tuple.getT2(); 
+                    double averageUsersPerMedia = mediaCount == 0 ? 0 : (double) totalUserCount / mediaCount;
+    
                     try (FileWriter fileWriter = new FileWriter("averageUsersPerMedia.txt", false)) {
                         fileWriter.write("Average number of users per media item: " + averageUsersPerMedia + "\n");
                     } catch (IOException e) {
@@ -178,6 +178,8 @@ public class WebClientApplication {
                     }
                 });
     }
+    
+    
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         // Fetch all user-media relationships
         webClient.get().uri("/user-media")

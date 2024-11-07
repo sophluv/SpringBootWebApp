@@ -3,11 +3,11 @@ package app.client.model;
 import java.time.LocalDate;
 
 public class Media {
-    private Long id;           // Identifier
-    private String title;      // Title
-    private LocalDate releaseDate; // Release date
-    private double averageRating;  // Average rating (between 0 and 10)
-    private String type;       // Type (e.g., Movie or TV Show)
+    private Long id;        
+    private String title;   
+    private LocalDate releaseDate; 
+    private double averageRating;  // between 0 and 10
+    private String type;       // Movie or TV Show
 
     // Getters and Setters
     public Long getId() {

@@ -26,14 +26,12 @@ public class UserMediaController {
     @Autowired
     private UserMediaService userMediaService;
 
-    // Retrieve all user-media relationships
     @GetMapping
     public Flux<UserMedia> getAllUserMedia() {
         log.info("Retrieving all user-media relationships");
         return userMediaService.getAllUserMedia();
     }
 
-    // Retrieve a specific user-media relationship by ID
     @GetMapping("/{id}")
     public Mono<ResponseEntity<UserMedia>> getUserMediaById(@PathVariable Long id) {
         log.info("Retrieving user-media relationship with ID: {}", id);
@@ -42,7 +40,6 @@ public class UserMediaController {
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Link a user to a media item (create a user-media relationship)
     @PostMapping("/link")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<UserMedia> linkUserToMedia(@RequestParam Long userId, @RequestParam Long mediaId) {
@@ -50,7 +47,6 @@ public class UserMediaController {
         return userMediaService.addUserMediaRelationship(userId, mediaId);
     }
 
-    // Delete a user-media relationship by ID
     @DeleteMapping("/{id}")
     public Mono<ResponseEntity<Void>> deleteUserMedia(@PathVariable Long id) {
         log.info("Deleting user-media relationship with ID: {}", id);
