@@ -7,8 +7,8 @@ import org.springframework.data.relational.core.mapping.Table;
 @Table("users") // Table name in the database
 public class User {
 
-    @Id // Marks the primary key
-    private Long id;
+    @Id
+    private Long id;    
 
     @Column("name") // Maps to the 'name' column in the database
     private String name;
