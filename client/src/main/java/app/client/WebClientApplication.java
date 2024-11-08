@@ -237,24 +237,21 @@ public class WebClientApplication {
                     }
                 });
     }
-
-    // 9. Name and number of users per media item, sorted by age in descending order
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class)
-                .flatMap(userMedia ->
-                    webClient.get().uri("/users/{id}", userMedia.getUserId())
+                .flatMap(userMedia -> {
+                    Mono<User> userMono = webClient.get().uri("/users/{id}", userMedia.getUserId())
                             .retrieve()
-                            .bodyToMono(User.class)
-                            .zipWith(
-                                webClient.get().uri("/media/{id}", userMedia.getMediaId())
-                                        .retrieve()
-                                        .bodyToMono(Media.class),
-                                (user, media) -> Map.entry(media.getTitle(), user)
-                            )
-                )
-                .groupBy(Map.Entry::getKey)  
+                            .bodyToMono(User.class);
+                    Mono<Media> mediaMono = webClient.get().uri("/media/{id}", userMedia.getMediaId())
+                            .retrieve()
+                            .bodyToMono(Media.class);
+    
+                    return userMono.zipWith(mediaMono, (user, media) -> Map.entry(media.getTitle(), user));
+                })
+                .groupBy(Map.Entry::getKey)
                 .flatMap(mediaGroup -> 
                     mediaGroup.reduce(
                         "",
@@ -274,7 +271,7 @@ public class WebClientApplication {
                         }
                     )
                 )
-                .reduce((result1, result2) -> result1 + "\n" + result2) 
+                .reduce((result1, result2) -> result1 + "\n" + result2)
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
@@ -288,6 +285,7 @@ public class WebClientApplication {
                     }
                 });
     }
+    
 
     //10 User information without media subscriptions
     private static void writeAllUserInformation(WebClient webClient) {
