@@ -95,7 +95,7 @@ public class WebClientApplication {
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .filter(media -> media.getAverageRating() > 8)
-                .count()  // Counts items that match the filter
+                .count() 
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
