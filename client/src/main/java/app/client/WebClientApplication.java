@@ -95,11 +95,12 @@ public class WebClientApplication {
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .filter(media -> media.getAverageRating() > 8)
-                .reduce(0L, (count, media) -> count + 1)
+                .count()  // Counts items that match the filter
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
-                    return Mono.empty();})
+                    return Mono.empty();
+                })
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", false)) {
                         fileWriter.write("Total count of media items with rating > 8: " + count + "\n");
@@ -108,7 +109,7 @@ public class WebClientApplication {
                     }
                 });
     }
-
+    
     //4 Total count of media that is subscribed
     private static void writeMediaThatIsSubscribed(WebClient webClient) {
 
