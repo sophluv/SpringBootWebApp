@@ -3,6 +3,8 @@ package app.client;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +24,9 @@ public class WebClientApplication {
         writeAllMediaTitlesAndReleaseDates(webClient);
         writeTotalCountOfMediaItems(webClient);
         writeMediaItemsWithHighRatings(webClient);
+
+        writeMediaThatIsSubscribed(webClient);
+
         writeMediaFromTheEighties(webClient);
         writeOldestMediaItemName(webClient);
         writeAverageAndStandardDeviationOfMediaRatings(webClient);
@@ -36,12 +41,19 @@ public class WebClientApplication {
         }
     }
 
+    //1 Titles and release dates of all media items
     private static void writeAllMediaTitlesAndReleaseDates(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .reduce("", (acc, media) -> acc + "Title: " + media.getTitle() + ", Release Date: " + media.getReleaseDate() + "\n")
-                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .retryWhen(Retry.max(3).doAfterRetry(x->System.out.println("Retrying")).onRetryExhaustedThrow((x,y)-> {
+                    System.out.println("Retries exhausted");
+                    return new RuntimeException("Retries exhausted");
+                }))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(content -> {
                     try (FileWriter fileWriter = new FileWriter("mediaTitlesAndReleaseDates.txt", false)) {
                         fileWriter.write(content);
@@ -51,7 +63,7 @@ public class WebClientApplication {
                 });
     }
     
-
+    //2 Total count of media items
     private static void writeTotalCountOfMediaItems(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -65,6 +77,9 @@ public class WebClientApplication {
                     }
                 }))
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("countMediaItems.txt", false)) {
                         fileWriter.write("Total count of media items: " + count + "\n");
@@ -74,6 +89,7 @@ public class WebClientApplication {
                 });
     }
     
+    //3 Total count of media items that are really good (rating >8)
     private static void writeMediaItemsWithHighRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -81,6 +97,9 @@ public class WebClientApplication {
                 .filter(media -> media.getAverageRating() > 8)
                 .reduce(0L, (count, media) -> count + 1)
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", false)) {
                         fileWriter.write("Total count of media items with rating > 8: " + count + "\n");
@@ -89,7 +108,27 @@ public class WebClientApplication {
                     }
                 });
     }
-    
+
+    //4 Total count of media that is subscribed
+    private static void writeMediaThatIsSubscribed(WebClient webClient) {
+
+        Set<Long> uniqueSet = new HashSet<>();
+   
+        webClient.get().uri("/user-media")
+                .retrieve()
+                .bodyToFlux(UserMedia.class)
+                .filter(data -> uniqueSet.add(data.getMediaId()))
+                .count()
+                .subscribe(count -> {
+                    try (FileWriter fileWriter = new FileWriter("highRatedMediaItems.txt", false)) {
+                        fileWriter.write("Total count of media that is subscribed: " + count);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+    //5 Total count of media that are from the the 80's 
     private static void writeMediaFromTheEighties(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -99,6 +138,9 @@ public class WebClientApplication {
                 .sort((m1, m2) -> Double.compare(m2.getAverageRating(), m1.getAverageRating()))
                 .reduce("", (acc, media) -> acc + "Title: " + media.getTitle() + ", Rating: " + media.getAverageRating() + "\n")
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(content -> {
                     try (FileWriter fileWriter = new FileWriter("mediaFromTheEighties.txt", false)) {
                         fileWriter.write(content);
@@ -108,7 +150,7 @@ public class WebClientApplication {
                 });
     }
     
-
+    //6 Average and Standard deviations of all media items ratings
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -124,6 +166,9 @@ public class WebClientApplication {
                     return new double[]{average, acc[0]}; 
                 })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(stats -> {
                     try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", false)) {
                         fileWriter.write("Average rating: " + stats[0] + "\n");
@@ -133,6 +178,7 @@ public class WebClientApplication {
                 });
     }
     
+    //7 Name of the oldest media item
     private static void writeOldestMediaItemName(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -141,6 +187,9 @@ public class WebClientApplication {
                 .map(Media::getTitle)
                 .switchIfEmpty(Mono.just("No media items available"))
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(title -> {
                     try (FileWriter fileWriter = new FileWriter("oldestMediaItem.txt", false)) {
                         fileWriter.write("Oldest media item: " + title + "\n");
@@ -149,7 +198,8 @@ public class WebClientApplication {
                     }
                 });
     }
-    
+
+    //8 Average number of users per media item
     private static void writeAverageNumberOfUsersPerMedia(WebClient webClient) {
         Flux<UserMedia> userMediaFlux = webClient.get()
                 .uri("/user-media")
@@ -166,6 +216,9 @@ public class WebClientApplication {
                 .reduce((totalUsers, mediaUserCount) -> totalUsers + mediaUserCount)  
                 .zipWith(mediaFlux.count()) 
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(tuple -> {
                     long totalUserCount = tuple.getT1();  
                     long mediaCount = tuple.getT2(); 
@@ -179,9 +232,9 @@ public class WebClientApplication {
                 });
     }
     
-    
+    //9 Name and number of users per media item, sorted by age of descending number
+    //FALTA ORDENAR POR IDADE
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
-        // Fetch all user-media relationships
         webClient.get().uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class)
@@ -199,6 +252,9 @@ public class WebClientApplication {
                             )
                 )
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();})
                 .subscribe(userData -> {
                     try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) { 
                         fileWriter.write(userData + "\n");
@@ -208,6 +264,7 @@ public class WebClientApplication {
                 });
     }
     
-
+    //10 Complete data of all users, by adding the names of subscibed media items
+    
 
 }
