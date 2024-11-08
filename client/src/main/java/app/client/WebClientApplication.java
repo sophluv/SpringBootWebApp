@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -32,7 +31,7 @@ public class WebClientApplication {
         writeAverageAndStandardDeviationOfMediaRatings(webClient);
         writeAverageNumberOfUsersPerMedia(webClient);
         writeUserDataWithSubscribedMedia(webClient);
-        writeCompleteUserDataWithSubscribedMedia(webClient); 
+        //writeCompleteUserDataWithSubscribedMedia(webClient); 
 
 
 
@@ -159,13 +158,13 @@ public class WebClientApplication {
                 .bodyToFlux(Media.class)
                 .map(Media::getAverageRating)
                 .reduce(new double[]{0.0, 0.0, 0.0}, (acc, rating) -> {
-                    acc[0] += rating;  // Sum of ratings
-                    acc[1] += 1;       // Count of ratings
-                    acc[2] += Math.pow(rating, 2); // Sum of squared ratings for variance calculation
+                    acc[0] += rating; 
+                    acc[1] += 1;      
+                    acc[2] += Math.pow(rating, 2);
                     return acc;
                 })
                 .map(acc -> {
-                    double average = acc[0] / acc[1];  // Calculate average
+                    double average = acc[0] / acc[1];  
                     double variance = (acc[2] / acc[1]) - Math.pow(average, 2);  // Calculate variance
                     double standardDeviation = Math.sqrt(variance);  // Calculate standard deviation
                     return new double[]{average, standardDeviation};
@@ -239,7 +238,7 @@ public class WebClientApplication {
                     }
                 });
     }
-    
+
     //9 Name and number of users per media item, sorted by age of descending number
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/user-media")
@@ -259,16 +258,25 @@ public class WebClientApplication {
                 .groupBy(Map.Entry::getKey)  
                 .flatMap(mediaGroup -> mediaGroup.collectList())  
                 .map(usersForMedia -> {
+                    // Sort users by age (descending order)
                     usersForMedia.sort((entry1, entry2) -> Integer.compare(entry2.getValue().getAge(), entry1.getValue().getAge()));
     
-                    String mediaTitle = usersForMedia.get(0).getKey(); 
-                    int userCount = usersForMedia.size();
-                    String userNames = usersForMedia.stream()
-                            .map(entry -> entry.getValue().getName()) 
-                            .collect(Collectors.joining(", "));
+                    String mediaTitle = usersForMedia.get(0).getKey(); // Get media title
+                    int userCount = usersForMedia.size(); // Get user count
+                    StringBuilder userNames = new StringBuilder();
+    
+                    // Manually concatenate user names
+                    for (Map.Entry<String, User> entry : usersForMedia) {
+                        if (userNames.length() > 0) {
+                            userNames.append(", ");
+                        }
+                        userNames.append(entry.getValue().getName());
+                    }
+    
+                    // Return the formatted string for this media
                     return "Media: " + mediaTitle + " | Users (" + userCount + "): " + userNames;
                 })
-                .reduce((result1, result2) -> result1 + "\n" + result2)  
+                .reduce((result1, result2) -> result1 + "\n" + result2) // Combine all results into one string
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
@@ -284,47 +292,47 @@ public class WebClientApplication {
     }
     
 
-    // 10 Complete data of all users, by adding the names of subscribed media items
-    private static void writeCompleteUserDataWithSubscribedMedia(WebClient webClient) {
-        try (FileWriter fileWriter = new FileWriter("completeUserData.txt", false)) {
-            fileWriter.write(""); 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    // // 10 Complete data of all users, by adding the names of subscribed media items
+    // private static void writeCompleteUserDataWithSubscribedMedia(WebClient webClient) {
+    //     try (FileWriter fileWriter = new FileWriter("completeUserData.txt", false)) {
+    //         fileWriter.write(""); 
+    //     } catch (IOException e) {
+    //         e.printStackTrace();
+    //     }
 
-        webClient.get().uri("/users")
-                .retrieve()
-                .bodyToFlux(User.class)
-                .flatMap(user ->
-                    webClient.get().uri("/user-media?userId=" + user.getId())
-                            .retrieve()
-                            .bodyToFlux(UserMedia.class)
-                            .flatMap(userMedia ->
-                                webClient.get().uri("/media/{id}", userMedia.getMediaId())
-                                        .retrieve()
-                                        .bodyToMono(Media.class)
-                                        .map(Media::getTitle)
-                            )
-                            .reduce((title1, title2) -> title1 + ", " + title2)
-                            .map(mediaTitles -> {
-                                return "User: " + user.getName() + " | Age: " + user.getAge() +
-                                        " | Gender: " + user.getGender() +
-                                        " | Subscribed Media: " + (mediaTitles == null ? "None" : mediaTitles);
-                            })
-                )
-                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
-                .onErrorResume(Exception.class, e -> {
-                    System.out.println("An error occurred: " + e.getMessage());
-                    return Mono.empty();
-                })
-                .subscribe(userData -> {
-                    try (FileWriter fileWriter = new FileWriter("completeUserData.txt", true)) { 
-                        fileWriter.write(userData + "\n");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
-    }
+    //     webClient.get().uri("/users")
+    //             .retrieve()
+    //             .bodyToFlux(User.class)
+    //             .flatMap(user ->
+    //                 webClient.get().uri("/user-media?userId=" + user.getId())
+    //                         .retrieve()
+    //                         .bodyToFlux(UserMedia.class)
+    //                         .flatMap(userMedia ->
+    //                             webClient.get().uri("/media/{id}", userMedia.getMediaId())
+    //                                     .retrieve()
+    //                                     .bodyToMono(Media.class)
+    //                                     .map(Media::getTitle)
+    //                         )
+    //                         .reduce((title1, title2) -> title1 + ", " + title2)
+    //                         .map(mediaTitles -> {
+    //                             return "User: " + user.getName() + " | Age: " + user.getAge() +
+    //                                     " | Gender: " + user.getGender() +
+    //                                     " | Subscribed Media: " + (mediaTitles == null ? "None" : mediaTitles);
+    //                         })
+    //             )
+    //             .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+    //             .onErrorResume(Exception.class, e -> {
+    //                 System.out.println("An error occurred: " + e.getMessage());
+    //                 return Mono.empty();
+    //             })
+    //             .subscribe(userData -> {
+    //                 try (FileWriter fileWriter = new FileWriter("completeUserData.txt", true)) { 
+    //                     fileWriter.write(userData + "\n");
+    //                 } catch (IOException e) {
+    //                     e.printStackTrace();
+    //                 }
+    //             });
+    // }
 
         
 
