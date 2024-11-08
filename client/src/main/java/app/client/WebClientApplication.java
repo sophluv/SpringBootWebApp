@@ -150,7 +150,7 @@ public class WebClientApplication {
                     }
                 });
     }
-    // 6. Average and Standard deviations of all media items ratings
+    // 6 Average and Standard deviations of all media items ratings
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -237,6 +237,8 @@ public class WebClientApplication {
                     }
                 });
     }
+
+    // 9 Name and number of users per media item sorted by age in descending order
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/user-media")
                 .retrieve()
@@ -266,7 +268,6 @@ public class WebClientApplication {
                             } else {
                                 string += ", " + userInfo;
                             }
-                            
                             return string;
                         }
                     )
@@ -285,6 +286,7 @@ public class WebClientApplication {
                     }
                 });
     }
+    
     
 
     //10 User information without media subscriptions
