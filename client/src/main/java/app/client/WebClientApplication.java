@@ -123,7 +123,7 @@ public class WebClientApplication {
                 .filter(data -> uniqueSet.add(data.getMediaId()))
                 .count()
                 .subscribe(count -> {
-                    try (FileWriter fileWriter = new FileWriter("4.txt", false)) {
+                    try (FileWriter fileWriter = new FileWriter("mediaSubscribed.txt", false)) {
                         fileWriter.write("Total count of media that is subscribed: " + count);
                     } catch (IOException e) {
                         e.printStackTrace();
