@@ -6,7 +6,6 @@ public class User {
     private int age;       
     private String gender;  
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

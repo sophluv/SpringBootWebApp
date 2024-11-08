@@ -19,7 +19,6 @@ public class User {
     @Column("gender") 
     private String gender;
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

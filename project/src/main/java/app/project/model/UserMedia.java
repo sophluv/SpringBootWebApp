@@ -4,19 +4,18 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("user_media") // Name matches the join table in the database
+@Table("user_media")
 public class UserMedia {
 
-    @Id // Primary key for the join table, auto-generated
+    @Id 
     private Long id;
 
-    @Column("user_id") // Foreign key to the User table
+    @Column("user_id") 
     private Long userId;
 
-    @Column("media_id") // Foreign key to the Media table
+    @Column("media_id") 
     private Long mediaId;
 
-    // Constructors
     public UserMedia() {}
 
     public UserMedia(Long userId, Long mediaId) {
@@ -24,7 +23,6 @@ public class UserMedia {
         this.mediaId = mediaId;
     }
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

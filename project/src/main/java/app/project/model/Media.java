@@ -24,7 +24,6 @@ public class Media {
     @Column("type") 
     private String type; // "Movie" or "TV Show"
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

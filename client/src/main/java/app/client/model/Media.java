@@ -6,10 +6,9 @@ public class Media {
     private Long id;        
     private String title;   
     private LocalDate releaseDate; 
-    private double averageRating;  // between 0 and 10
-    private String type;       // Movie or TV Show
+    private double averageRating; // between 0 and 10
+    private String type; // Movie or TV Show
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

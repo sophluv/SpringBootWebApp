@@ -5,7 +5,6 @@ public class UserMedia {
     private Long userId;
     private Long mediaId;
 
-    // Getters and setters
     public Long getId() {
         return id;
     }

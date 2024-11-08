@@ -1,4 +1,4 @@
--- User table to store user details
+-- User table 
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY
     name VARCHAR(255) NOT NULL,
@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     gender VARCHAR(10)
 );
 
--- Media table to store media details
+-- Media table 
 CREATE TABLE IF NOT EXISTS media (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS media (
     type VARCHAR(20) CHECK (type IN ('Movie', 'TV Show'))
 );
 
--- Table for the many-to-many relationship between users and media
+-- Users and media relationship table
 CREATE TABLE IF NOT EXISTS user_media (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(id),
