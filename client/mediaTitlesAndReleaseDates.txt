@@ -1,3 +1,5 @@
 Title: Scarface, Release Date: 1983-12-09
 Title: Fight Club, Release Date: 1999-10-15
 Title: The Notebook, Release Date: 2004-06-25
+Title: The Great Gatsby, Release Date: 2013-05-10
+Title: The Little Mermaid, Release Date: 1989-11-17
