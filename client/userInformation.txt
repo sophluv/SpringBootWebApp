@@ -1,0 +1,4 @@
+User: Jordao, Age: 22, Gender: Male
+User: Sofia, Age: 20, Gender: Female
+User: Diogo, Age: 21, Gender: Male
+User: Jorge, Age: 9, Gender: Male
