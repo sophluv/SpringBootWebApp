@@ -4,7 +4,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -24,15 +26,16 @@ public class WebClientApplication {
         writeAllMediaTitlesAndReleaseDates(webClient);
         writeTotalCountOfMediaItems(webClient);
         writeMediaItemsWithHighRatings(webClient);
-
         writeMediaThatIsSubscribed(webClient);
-
         writeMediaFromTheEighties(webClient);
         writeOldestMediaItemName(webClient);
         writeAverageAndStandardDeviationOfMediaRatings(webClient);
         writeAverageNumberOfUsersPerMedia(webClient);
         writeUserDataWithSubscribedMedia(webClient);
-        
+        writeCompleteUserDataWithSubscribedMedia(webClient); 
+
+
+
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {
@@ -149,34 +152,39 @@ public class WebClientApplication {
                     }
                 });
     }
-    
-    //6 Average and Standard deviations of all media items ratings
+    // 6. Average and Standard deviations of all media items ratings
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .map(Media::getAverageRating)
-                .reduce(new double[]{0.0, 0.0}, (acc, rating) -> {
-                    acc[0] += rating;  
-                    acc[1] += 1;       
+                .reduce(new double[]{0.0, 0.0, 0.0}, (acc, rating) -> {
+                    acc[0] += rating;  // Sum of ratings
+                    acc[1] += 1;       // Count of ratings
+                    acc[2] += Math.pow(rating, 2); // Sum of squared ratings for variance calculation
                     return acc;
                 })
                 .map(acc -> {
-                    double average = acc[0] / acc[1];
-                    return new double[]{average, acc[0]}; 
+                    double average = acc[0] / acc[1];  // Calculate average
+                    double variance = (acc[2] / acc[1]) - Math.pow(average, 2);  // Calculate variance
+                    double standardDeviation = Math.sqrt(variance);  // Calculate standard deviation
+                    return new double[]{average, standardDeviation};
                 })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
-                    return Mono.empty();})
+                    return Mono.empty();
+                })
                 .subscribe(stats -> {
                     try (FileWriter fileWriter = new FileWriter("mediaRatingsStats.txt", false)) {
                         fileWriter.write("Average rating: " + stats[0] + "\n");
+                        fileWriter.write("Standard deviation: " + stats[1] + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
     }
+
     
     //7 Name of the oldest media item
     private static void writeOldestMediaItemName(WebClient webClient) {
@@ -233,12 +241,11 @@ public class WebClientApplication {
     }
     
     //9 Name and number of users per media item, sorted by age of descending number
-    //FALTA ORDENAR POR IDADE
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class)
-                .flatMap(userMedia -> 
+                .flatMap(userMedia ->
                     webClient.get().uri("/users/{id}", userMedia.getUserId())
                             .retrieve()
                             .bodyToMono(User.class)
@@ -246,17 +253,29 @@ public class WebClientApplication {
                                 webClient.get().uri("/media/{id}", userMedia.getMediaId())
                                         .retrieve()
                                         .bodyToMono(Media.class),
-                                (user, media) -> {
-                                    return "User: " + user.getName() + ", Subscribed Media: " + media.getTitle();
-                                }
+                                (user, media) -> Map.entry(media.getTitle(), user)
                             )
                 )
+                .groupBy(Map.Entry::getKey)  
+                .flatMap(mediaGroup -> mediaGroup.collectList())  
+                .map(usersForMedia -> {
+                    usersForMedia.sort((entry1, entry2) -> Integer.compare(entry2.getValue().getAge(), entry1.getValue().getAge()));
+    
+                    String mediaTitle = usersForMedia.get(0).getKey(); 
+                    int userCount = usersForMedia.size();
+                    String userNames = usersForMedia.stream()
+                            .map(entry -> entry.getValue().getName()) 
+                            .collect(Collectors.joining(", "));
+                    return "Media: " + mediaTitle + " | Users (" + userCount + "): " + userNames;
+                })
+                .reduce((result1, result2) -> result1 + "\n" + result2)  
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
-                    return Mono.empty();})
+                    return Mono.empty();
+                })
                 .subscribe(userData -> {
-                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) { 
+                    try (FileWriter fileWriter = new FileWriter("userSubscribedMedia.txt", false)) {
                         fileWriter.write(userData + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -264,7 +283,49 @@ public class WebClientApplication {
                 });
     }
     
-    //10 Complete data of all users, by adding the names of subscibed media items
-    
+
+    // 10 Complete data of all users, by adding the names of subscribed media items
+    private static void writeCompleteUserDataWithSubscribedMedia(WebClient webClient) {
+        try (FileWriter fileWriter = new FileWriter("completeUserData.txt", false)) {
+            fileWriter.write(""); 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        webClient.get().uri("/users")
+                .retrieve()
+                .bodyToFlux(User.class)
+                .flatMap(user ->
+                    webClient.get().uri("/user-media?userId=" + user.getId())
+                            .retrieve()
+                            .bodyToFlux(UserMedia.class)
+                            .flatMap(userMedia ->
+                                webClient.get().uri("/media/{id}", userMedia.getMediaId())
+                                        .retrieve()
+                                        .bodyToMono(Media.class)
+                                        .map(Media::getTitle)
+                            )
+                            .reduce((title1, title2) -> title1 + ", " + title2)
+                            .map(mediaTitles -> {
+                                return "User: " + user.getName() + " | Age: " + user.getAge() +
+                                        " | Gender: " + user.getGender() +
+                                        " | Subscribed Media: " + (mediaTitles == null ? "None" : mediaTitles);
+                            })
+                )
+                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();
+                })
+                .subscribe(userData -> {
+                    try (FileWriter fileWriter = new FileWriter("completeUserData.txt", true)) { 
+                        fileWriter.write(userData + "\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+        
 
 }
