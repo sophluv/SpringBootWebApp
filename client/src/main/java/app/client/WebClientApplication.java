@@ -252,12 +252,13 @@ public class WebClientApplication {
                             webClient.get().uri("/media/{id}", userMedia.getMediaId())
                                 .retrieve()
                                 .bodyToMono(Media.class)
-                                .map(media -> Map.entry(media.getTitle(), user)) 
+                                .map(media -> Map.entry(media.getTitle(), user))
                         )
                 )
                 .groupBy(Map.Entry::getKey) 
                 .flatMap(mediaGroup -> 
                     mediaGroup
+                        .sort((age1, age2) -> Integer.compare(age2.getValue().getAge(), age1.getValue().getAge())) 
                         .reduce(
                             "", 
                             (string, entry) -> {
@@ -273,7 +274,7 @@ public class WebClientApplication {
                             }
                         )
                 )
-                .reduce((result1, result2) -> result1 + "\n" + result2) 
+                .reduce((result1, result2) -> result1 + "\n" + result2)  
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
@@ -287,7 +288,7 @@ public class WebClientApplication {
                     }
                 });
     }
-
+    
 
     //10 User information without media subscriptions
     private static void writeAllUserInformation(WebClient webClient) {
