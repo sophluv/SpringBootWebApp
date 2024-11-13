@@ -211,17 +211,13 @@ public class WebClientApplication {
                 .uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class);
-
         Flux<Media> mediaFlux = webClient.get()
                 .uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class);
-
         mediaFlux
-                .reduce(
-                    new long[]{0, 0}, 
-                    (data, media) -> {
-                        long userCount = userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count().block(); // blocking to count users for each media
+                .reduce( new long[]{0, 0}, (data, media) -> {
+                        long userCount = userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count().block(); 
                         data[0] += userCount; 
                         data[1] += 1; 
                         return data;
