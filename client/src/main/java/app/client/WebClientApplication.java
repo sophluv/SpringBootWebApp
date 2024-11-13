@@ -211,25 +211,30 @@ public class WebClientApplication {
                 .uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class);
-    
+
         Flux<Media> mediaFlux = webClient.get()
                 .uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class);
-    
+
         mediaFlux
-                .flatMap(media -> userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count())
-                .reduce((totalUsers, mediaUserCount) -> totalUsers + mediaUserCount)  
-                .zipWith(mediaFlux.count()) 
+                .reduce(
+                    new long[]{0, 0}, 
+                    (data, media) -> {
+                        long userCount = userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count().block(); // blocking to count users for each media
+                        data[0] += userCount; 
+                        data[1] += 1; 
+                        return data;
+                    })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
-                    return Mono.empty();})
-                .subscribe(tuple -> {
-                    long totalUserCount = tuple.getT1();  
-                    long mediaCount = tuple.getT2(); 
+                    return Mono.empty();
+                })
+                .subscribe(data -> {
+                    long totalUserCount = data[0];
+                    long mediaCount = data[1];
                     double averageUsersPerMedia = mediaCount == 0 ? 0 : (double) totalUserCount / mediaCount;
-    
                     try (FileWriter fileWriter = new FileWriter("averageUsersPerMedia.txt", false)) {
                         fileWriter.write("Average number of users per media item: " + averageUsersPerMedia + "\n");
                     } catch (IOException e) {
@@ -238,41 +243,41 @@ public class WebClientApplication {
                 });
     }
 
-    // 9 Name and number of users per media item sorted by age in descending order
+    //9 Name and number of users per media item sorted by age in descending order
     private static void writeUserDataWithSubscribedMedia(WebClient webClient) {
         webClient.get().uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class)
-                .flatMap(userMedia -> {
-                    Mono<User> userMono = webClient.get().uri("/users/{id}", userMedia.getUserId())
-                            .retrieve()
-                            .bodyToMono(User.class);
-                    Mono<Media> mediaMono = webClient.get().uri("/media/{id}", userMedia.getMediaId())
-                            .retrieve()
-                            .bodyToMono(Media.class);
-    
-                    return userMono.zipWith(mediaMono, (user, media) -> Map.entry(media.getTitle(), user));
-                })
-                .groupBy(Map.Entry::getKey)
-                .flatMap(mediaGroup -> 
-                    mediaGroup.reduce(
-                        "",
-                        (string, entry) -> {
-                            String mediaTitle = entry.getKey();
-                            User user = entry.getValue();
-                            
-                            String userInfo = user.getName() + " (Age: " + user.getAge() + ")";
-                        
-                            if (string.isEmpty()) {
-                                string = "Media: " + mediaTitle + ", Users: " + userInfo;
-                            } else {
-                                string += ", " + userInfo;
-                            }
-                            return string;
-                        }
-                    )
+                .flatMap(userMedia -> 
+                    webClient.get().uri("/users/{id}", userMedia.getUserId())
+                        .retrieve()
+                        .bodyToMono(User.class)
+                        .flatMap(user -> 
+                            webClient.get().uri("/media/{id}", userMedia.getMediaId())
+                                .retrieve()
+                                .bodyToMono(Media.class)
+                                .map(media -> Map.entry(media.getTitle(), user)) 
+                        )
                 )
-                .reduce((result1, result2) -> result1 + "\n" + result2)
+                .groupBy(Map.Entry::getKey) 
+                .flatMap(mediaGroup -> 
+                    mediaGroup
+                        .reduce(
+                            "", 
+                            (string, entry) -> {
+                                String mediaTitle = entry.getKey();
+                                User user = entry.getValue();
+                                String userInfo = user.getName() + " (Age: " + user.getAge() + ")";
+                                if (string.isEmpty()) {
+                                    string = "Media: " + mediaTitle + ", Users: " + userInfo;
+                                } else {
+                                    string += ", " + userInfo;
+                                }
+                                return string;
+                            }
+                        )
+                )
+                .reduce((result1, result2) -> result1 + "\n" + result2) 
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
@@ -286,8 +291,7 @@ public class WebClientApplication {
                     }
                 });
     }
-    
-    
+
 
     //10 User information without media subscriptions
     private static void writeAllUserInformation(WebClient webClient) {
