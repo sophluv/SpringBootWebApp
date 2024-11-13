@@ -47,10 +47,7 @@ public class WebClientApplication {
                 .retrieve()
                 .bodyToFlux(Media.class)
                 .reduce("", (string, media) -> string + "Title: " + media.getTitle() + ", Release Date: " + media.getReleaseDate() + "\n")
-                .retryWhen(Retry.max(3).doAfterRetry(x->System.out.println("Retrying")).onRetryExhaustedThrow((x,y)-> {
-                    System.out.println("Retries exhausted");
-                    return new RuntimeException("Retries exhausted");
-                }))
+                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
                     return Mono.empty();})
@@ -112,14 +109,17 @@ public class WebClientApplication {
     
     //4 Total count of media that is subscribed
     private static void writeMediaThatIsSubscribed(WebClient webClient) {
-
         Set<Long> uniqueSet = new HashSet<>();
-   
         webClient.get().uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class)
                 .filter(data -> uniqueSet.add(data.getMediaId()))
                 .count()
+                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2))) 
+                .onErrorResume(Exception.class, e -> {
+                    System.out.println("An error occurred: " + e.getMessage());
+                    return Mono.empty();
+                })
                 .subscribe(count -> {
                     try (FileWriter fileWriter = new FileWriter("mediaSubscribed.txt", false)) {
                         fileWriter.write("Total count of media that is subscribed: " + count);
@@ -150,6 +150,7 @@ public class WebClientApplication {
                     }
                 });
     }
+
     // 6 Average and Standard deviations of all media items ratings
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
@@ -164,8 +165,8 @@ public class WebClientApplication {
                 })
                 .map(data -> {
                     double average = data[0] / data[1];  
-                    double variance = (data[2] / data[1]) - Math.pow(average, 2);  // Calculate variance
-                    double standardDeviation = Math.sqrt(variance);  // Calculate standard deviation
+                    double variance = (data[2] / data[1]) - Math.pow(average, 2);  
+                    double standardDeviation = Math.sqrt(variance);  
                     return new double[]{average, standardDeviation};
                 })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
@@ -211,26 +212,33 @@ public class WebClientApplication {
                 .uri("/user-media")
                 .retrieve()
                 .bodyToFlux(UserMedia.class);
+
         Flux<Media> mediaFlux = webClient.get()
                 .uri("/media")
                 .retrieve()
                 .bodyToFlux(Media.class);
         mediaFlux
-                .reduce( new long[]{0, 0}, (data, media) -> {
-                        long userCount = userMediaFlux.filter(userMedia -> userMedia.getMediaId().equals(media.getId())).count().block(); 
-                        data[0] += userCount; 
-                        data[1] += 1; 
-                        return data;
-                    })
+                .flatMap(media -> 
+                    userMediaFlux
+                        .filter(userMedia -> userMedia.getMediaId().equals(media.getId()))
+                        .count()
+                        .map(userCount -> new long[]{userCount, 1L}) // Array to store the count and a single media item count
+                )
+                .reduce(new long[]{0, 0}, (data, userData) -> {
+                    data[0] += userData[0]; // Accumulate user count
+                    data[1] += userData[1]; // Accumulate media item count
+                    return data;
+                })
+                .map(data -> {
+                    double averageUsersPerMedia = data[1] == 0 ? 0 : (double) data[0] / data[1];
+                    return averageUsersPerMedia;
+                })
                 .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
                     return Mono.empty();
                 })
-                .subscribe(data -> {
-                    long totalUserCount = data[0];
-                    long mediaCount = data[1];
-                    double averageUsersPerMedia = mediaCount == 0 ? 0 : (double) totalUserCount / mediaCount;
+                .subscribe(averageUsersPerMedia -> {
                     try (FileWriter fileWriter = new FileWriter("averageUsersPerMedia.txt", false)) {
                         fileWriter.write("Average number of users per media item: " + averageUsersPerMedia + "\n");
                     } catch (IOException e) {
@@ -256,8 +264,7 @@ public class WebClientApplication {
                         )
                 )
                 .groupBy(Map.Entry::getKey) 
-                .flatMap(mediaGroup -> 
-                    mediaGroup
+                .flatMap(mediaGroup -> mediaGroup
                         .sort((age1, age2) -> Integer.compare(age2.getValue().getAge(), age1.getValue().getAge())) 
                         .reduce( "", (string, entry) -> {
                                 String mediaTitle = entry.getKey();
@@ -294,12 +301,7 @@ public class WebClientApplication {
                 .retrieve()
                 .bodyToFlux(User.class)
                 .reduce("", (string, user) -> string + "User: " + user.getName() + ", Age: " + user.getAge() + ", Gender: " + user.getGender() + "\n")
-                .retryWhen(Retry.max(3)
-                        .doAfterRetry(retrySignal -> System.out.println("Retrying..."))
-                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                            System.out.println("Retries exhausted");
-                            return new RuntimeException("Retries exhausted");
-                        }))
+                .retryWhen(Retry.backoff(3, java.time.Duration.ofSeconds(2)))
                 .onErrorResume(Exception.class, e -> {
                     System.out.println("An error occurred: " + e.getMessage());
                     return Mono.empty();
@@ -312,7 +314,4 @@ public class WebClientApplication {
                     }
                 });
     }
-
-        
-
 }
