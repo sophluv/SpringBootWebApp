@@ -151,7 +151,7 @@ public class WebClientApplication {
                 });
     }
 
-    // 6 Average and Standard deviations of all media items ratings
+    //6 Average and Standard deviations of all media items ratings
     private static void writeAverageAndStandardDeviationOfMediaRatings(WebClient webClient) {
         webClient.get().uri("/media")
                 .retrieve()
@@ -222,11 +222,11 @@ public class WebClientApplication {
                     userMediaFlux
                         .filter(userMedia -> userMedia.getMediaId().equals(media.getId()))
                         .count()
-                        .map(userCount -> new long[]{userCount, 1L}) // Array to store the count and a single media item count
+                        .map(userCount -> new long[]{userCount, 1L}) 
                 )
                 .reduce(new long[]{0, 0}, (data, userData) -> {
-                    data[0] += userData[0]; // Accumulate user count
-                    data[1] += userData[1]; // Accumulate media item count
+                    data[0] += userData[0]; 
+                    data[1] += userData[1]; 
                     return data;
                 })
                 .map(data -> {
