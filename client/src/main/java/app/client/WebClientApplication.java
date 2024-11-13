@@ -259,9 +259,7 @@ public class WebClientApplication {
                 .flatMap(mediaGroup -> 
                     mediaGroup
                         .sort((age1, age2) -> Integer.compare(age2.getValue().getAge(), age1.getValue().getAge())) 
-                        .reduce(
-                            "", 
-                            (string, entry) -> {
+                        .reduce( "", (string, entry) -> {
                                 String mediaTitle = entry.getKey();
                                 User user = entry.getValue();
                                 String userInfo = user.getName() + " (Age: " + user.getAge() + ")";
